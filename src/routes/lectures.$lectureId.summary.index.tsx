@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Expand, MessageSquareText, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Expand, MessageSquareText, Minus, Plus, Shrink } from "lucide-react";
 import { AppShell, Container, EmptyState } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,95 @@ function SummaryPage() {
   const [page, setPage] = useState(0);
   const [zoom, setZoom] = useState(1);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(1);
+  zoomRef.current = zoom;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    const sync = () => setIsFullscreen(Boolean(doc.fullscreenElement ?? doc.webkitFullscreenElement));
+    sync();
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
+    const el = viewerRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null;
+    const run = (p: Promise<void> | undefined) => { void p?.catch(() => undefined); };
+    if (doc.fullscreenElement ?? doc.webkitFullscreenElement) {
+      run(doc.exitFullscreen ? doc.exitFullscreen() : doc.webkitExitFullscreen?.());
+    } else if (el) {
+      run(el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen?.());
+    }
+  };
+
+  // Pinch-to-zoom, one-finger pan and ctrl/trackpad-pinch wheel zoom on the image scroller.
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+  const applyZoom = (next: number, clientX?: number, clientY?: number) => {
+    const el = scrollRef.current;
+    const prev = zoomRef.current;
+    const clamped = Math.min(3, Math.max(0.5, next));
+    if (!el || clamped === prev) return;
+    const rect = el.getBoundingClientRect();
+    const px = (clientX ?? rect.left + rect.width / 2) - rect.left;
+    const py = (clientY ?? rect.top + rect.height / 2) - rect.top;
+    const k = clamped / prev;
+    const left = (el.scrollLeft + px) * k - px;
+    const top = (el.scrollTop + py) * k - py;
+    zoomRef.current = clamped;
+    setZoom(clamped);
+    requestAnimationFrame(() => { el.scrollLeft = left; el.scrollTop = top; });
+  };
+  const applyZoomRef = useRef(applyZoom);
+  applyZoomRef.current = applyZoom;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      applyZoomRef.current(zoomRef.current * Math.exp(-dy * 0.01), e.clientX, e.clientY);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "touch") return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer may already be released */ }
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { dist: Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y)), zoom: zoomRef.current };
+    }
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const prev = pointers.current.get(e.pointerId);
+    if (!prev) return;
+    const el = e.currentTarget;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size >= 2 && pinch.current) {
+      const [a, b] = [...pointers.current.values()];
+      const dist = Math.hypot(a!.x - b!.x, a!.y - b!.y);
+      applyZoomRef.current(pinch.current.zoom * (dist / pinch.current.dist), (a!.x + b!.x) / 2, (a!.y + b!.y) / 2);
+    } else if (pointers.current.size === 1) {
+      el.scrollLeft -= e.clientX - prev.x;
+      el.scrollTop -= e.clientY - prev.y;
+    }
+  };
+  const onPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["summary-viewer", lectureId],
@@ -95,9 +184,9 @@ function SummaryPage() {
             <div ref={viewerRef} className="card-surface overflow-hidden bg-background">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
                 <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Previous page" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); setZoom(1); }}><ChevronLeft className="size-4" /></Button><span className="min-w-20 text-center text-xs font-semibold">Page {page + 1} of {data?.files.length ?? 0}</span><Button size="sm" variant="ghost" aria-label="Next page" disabled={page === (data?.files.length ?? 1) - 1} onClick={() => { setPage((value) => Math.min((data?.files.length ?? 1) - 1, value + 1)); setZoom(1); }}><ChevronRight className="size-4" /></Button></div>
-                <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Zoom out" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))}><Minus className="size-4" /></Button><span className="w-12 text-center text-xs font-semibold">{Math.round(zoom * 100)}%</span><Button size="sm" variant="ghost" aria-label="Zoom in" onClick={() => setZoom((value) => Math.min(3, value + 0.25))}><Plus className="size-4" /></Button><Button size="sm" variant="ghost" aria-label="Full screen" onClick={() => void viewerRef.current?.requestFullscreen()}><Expand className="size-4" /></Button></div>
+                <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Zoom out" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))}><Minus className="size-4" /></Button><span className="w-12 text-center text-xs font-semibold">{Math.round(zoom * 100)}%</span><Button size="sm" variant="ghost" aria-label="Zoom in" onClick={() => setZoom((value) => Math.min(3, value + 0.25))}><Plus className="size-4" /></Button><Button size="sm" variant="ghost" aria-label={isFullscreen ? "Exit full screen" : "Full screen"} title={isFullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen}>{isFullscreen ? <Shrink className="size-4" /> : <Expand className="size-4" />}</Button></div>
               </div>
-              <div className="h-[72vh] min-h-[32rem] overflow-auto bg-secondary/30 p-3 sm:p-6"><img key={current.id} src={current.signedUrl} alt={`Summary page ${page + 1}`} className="mx-auto max-w-none origin-top object-contain transition-transform" style={{ width: `${zoom * 100}%` }} /></div>
+              <div ref={scrollRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd} className="h-[72vh] min-h-[32rem] touch-none overscroll-contain overflow-auto bg-secondary/30 p-3 sm:p-6"><img draggable={false} key={current.id} src={current.signedUrl} alt={`Summary page ${page + 1}`} className="mx-auto max-w-none origin-top select-none object-contain" style={{ width: `${zoom * 100}%` }} /></div>
               {(data?.files.length ?? 0) > 1 && <div className="flex gap-2 overflow-x-auto border-t border-border p-3">{data?.files.map((file, index) => <button key={file.id} type="button" onClick={() => { setPage(index); setZoom(1); }} className={`h-20 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-secondary ${index === page ? "border-primary" : "border-transparent"}`}><img src={file.signedUrl} alt={`Page ${index + 1}`} className="h-full w-full object-cover" /></button>)}</div>}
             </div>
           )}
