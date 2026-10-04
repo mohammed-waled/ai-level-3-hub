@@ -24,6 +24,7 @@ import { Route as AssessAssessmentIdRouteImport } from './routes/assess.$assessm
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as LecturesLectureIdSummaryRouteImport } from './routes/lectures.$lectureId.summary'
+import { Route as LecturesLectureIdSummaryIndexRouteImport } from './routes/lectures.$lectureId.summary.index'
 import { Route as LecturesLectureIdSummaryChatThreadIdRouteImport } from './routes/lectures.$lectureId.summary.chat.$threadId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -102,6 +103,12 @@ const LecturesLectureIdSummaryRoute =
     path: '/lectures/$lectureId/summary',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LecturesLectureIdSummaryIndexRoute =
+  LecturesLectureIdSummaryIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => LecturesLectureIdSummaryRoute,
+  } as any)
 const LecturesLectureIdSummaryChatThreadIdRoute =
   LecturesLectureIdSummaryChatThreadIdRouteImport.update({
     id: '/chat/$threadId',
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/lectures/$lectureId/summary': typeof LecturesLectureIdSummaryRouteWithChildren
+  '/lectures/$lectureId/summary/': typeof LecturesLectureIdSummaryIndexRoute
   '/lectures/$lectureId/summary/chat/$threadId': typeof LecturesLectureIdSummaryChatThreadIdRoute
 }
 export interface FileRoutesByTo {
@@ -141,7 +149,7 @@ export interface FileRoutesByTo {
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/admin': typeof AdminIndexRoute
   '/courses': typeof CoursesIndexRoute
-  '/lectures/$lectureId/summary': typeof LecturesLectureIdSummaryRouteWithChildren
+  '/lectures/$lectureId/summary': typeof LecturesLectureIdSummaryIndexRoute
   '/lectures/$lectureId/summary/chat/$threadId': typeof LecturesLectureIdSummaryChatThreadIdRoute
 }
 export interface FileRoutesById {
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/lectures/$lectureId/summary': typeof LecturesLectureIdSummaryRouteWithChildren
+  '/lectures/$lectureId/summary/': typeof LecturesLectureIdSummaryIndexRoute
   '/lectures/$lectureId/summary/chat/$threadId': typeof LecturesLectureIdSummaryChatThreadIdRoute
 }
 export interface FileRouteTypes {
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/courses/'
     | '/lectures/$lectureId/summary'
+    | '/lectures/$lectureId/summary/'
     | '/lectures/$lectureId/summary/chat/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/courses/'
     | '/lectures/$lectureId/summary'
+    | '/lectures/$lectureId/summary/'
     | '/lectures/$lectureId/summary/chat/$threadId'
   fileRoutesById: FileRoutesById
 }
@@ -338,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LecturesLectureIdSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lectures/$lectureId/summary/': {
+      id: '/lectures/$lectureId/summary/'
+      path: '/'
+      fullPath: '/lectures/$lectureId/summary/'
+      preLoaderRoute: typeof LecturesLectureIdSummaryIndexRouteImport
+      parentRoute: typeof LecturesLectureIdSummaryRoute
+    }
     '/lectures/$lectureId/summary/chat/$threadId': {
       id: '/lectures/$lectureId/summary/chat/$threadId'
       path: '/chat/$threadId'
@@ -369,11 +387,13 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface LecturesLectureIdSummaryRouteChildren {
+  LecturesLectureIdSummaryIndexRoute: typeof LecturesLectureIdSummaryIndexRoute
   LecturesLectureIdSummaryChatThreadIdRoute: typeof LecturesLectureIdSummaryChatThreadIdRoute
 }
 
 const LecturesLectureIdSummaryRouteChildren: LecturesLectureIdSummaryRouteChildren =
   {
+    LecturesLectureIdSummaryIndexRoute: LecturesLectureIdSummaryIndexRoute,
     LecturesLectureIdSummaryChatThreadIdRoute:
       LecturesLectureIdSummaryChatThreadIdRoute,
   }

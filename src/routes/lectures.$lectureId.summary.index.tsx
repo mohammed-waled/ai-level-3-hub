@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import type { SummaryFile } from "@/lib/types";
 
-export const Route = createFileRoute("/lectures/$lectureId/summary")({
+export const Route = createFileRoute("/lectures/$lectureId/summary/")({
   head: () => ({ meta: [
     { title: "Lecture Summary — Level 3 Academic Hub" },
     { name: "description", content: "View the published lecture summary." },
