@@ -16,8 +16,6 @@ const ShimmerComponent = ({
   children,
   as: Component = "p",
   className,
-  duration = 2,
-  spread = 2,
 }: TextShimmerProps) => {
   return (
     <Component className={cn("inline-block animate-pulse text-muted-foreground motion-reduce:animate-none", className)}>
