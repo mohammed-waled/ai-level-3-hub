@@ -95,7 +95,7 @@ function SummaryPage() {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "touch") return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer may already be released */ }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
