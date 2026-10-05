@@ -208,7 +208,7 @@ function SummaryPage() {
           {!isLoading && !current && <EmptyState title="No summary yet" description="This lecture summary has not been published yet." />}
           {current && current.file_type === "pdf" && (
             <div className="card-surface overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><p className="truncate text-sm font-semibold">{current.original_file_name}</p><a href={current.signedUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">Open full screen</a></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><p className="truncate text-sm font-semibold">{current.original_file_name}</p><div className="flex items-center gap-3"><a href={current.signedUrl} download={current.original_file_name} className="text-xs font-semibold text-primary hover:underline">Download</a><a href={current.signedUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">Open full screen</a></div></div>
               <iframe title="Lecture summary PDF" src={`${current.signedUrl}#toolbar=1&navpanes=0&view=FitH`} className="h-[75vh] min-h-[34rem] w-full bg-secondary/30" />
             </div>
           )}
