@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAssessmentsRouteImport } from './routes/admin.assessments'
@@ -40,6 +41,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProgressRoute = ProgressRouteImport.update({
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/admin/assessments': typeof AdminAssessmentsRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/admin/assessments': typeof AdminAssessmentsRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/admin/assessments': typeof AdminAssessmentsRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/profile'
     | '/progress'
     | '/admin/assessments'
     | '/admin/courses'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/profile'
     | '/progress'
     | '/admin/assessments'
     | '/admin/courses'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/profile'
     | '/progress'
     | '/admin/assessments'
     | '/admin/courses'
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   ApiChatRoute: typeof ApiChatRoute
   AssessAssessmentIdRoute: typeof AssessAssessmentIdRoute
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/progress': {
@@ -407,6 +427,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   ApiChatRoute: ApiChatRoute,
   AssessAssessmentIdRoute: AssessAssessmentIdRoute,
