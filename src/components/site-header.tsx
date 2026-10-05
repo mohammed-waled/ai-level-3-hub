@@ -1,10 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, LogOut, Menu, ShieldCheck } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BarChart3, GraduationCap, LogOut, Menu, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -17,6 +25,17 @@ export function SiteHeader() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const profileQ = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name, created_at").eq("id", user!.id).maybeSingle();
+      return data;
+    },
+  });
+  const displayName = profileQ.data?.full_name || user?.email?.split("@")[0] || "Account";
+  const initials =
+    displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -61,9 +80,33 @@ export function SiteHeader() {
             </Link>
           )}
           {user ? (
-            <Button variant="ghost" size="sm" className="ml-2" onClick={signOut}>
-              <LogOut className="size-4" /> Sign out
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="ml-2 flex size-9 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground"
+                  aria-label="Account menu"
+                >
+                  {initials}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel className="font-normal">
+                  <p className="truncate text-sm font-semibold">{displayName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile"><UserRound className="size-4" /> Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/progress"><BarChart3 className="size-4" /> My Progress</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => void signOut()}>
+                  <LogOut className="size-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild size="sm" className="ml-2">
               <Link to="/auth">Sign in</Link>
