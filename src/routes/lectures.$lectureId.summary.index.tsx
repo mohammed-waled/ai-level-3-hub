@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Expand, MessageSquareText, Minus, Plus, Shrink } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Expand, MessageSquareText, Minus, Plus, Shrink } from "lucide-react";
 import { AppShell, Container, EmptyState } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,38 @@ function SummaryPage() {
   };
   const applyZoomRef = useRef(applyZoom);
   applyZoomRef.current = applyZoom;
+
+  // Reset zoom to exactly 100% and re-center the image (works in fullscreen too).
+  const resetZoom = () => {
+    zoomRef.current = 1;
+    setZoom(1);
+    const el = scrollRef.current;
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+        el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+      });
+    }
+  };
+
+  const downloadCurrent = async () => {
+    const file = data?.files[page];
+    if (!file) return;
+    try {
+      const response = await fetch(file.signedUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = file.original_file_name || `summary-page-${page + 1}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(file.signedUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -176,7 +208,7 @@ function SummaryPage() {
           {!isLoading && !current && <EmptyState title="No summary yet" description="This lecture summary has not been published yet." />}
           {current && current.file_type === "pdf" && (
             <div className="card-surface overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><p className="truncate text-sm font-semibold">{current.original_file_name}</p><a href={current.signedUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">Open full screen</a></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><p className="truncate text-sm font-semibold">{current.original_file_name}</p><div className="flex items-center gap-3"><a href={current.signedUrl} download={current.original_file_name} className="text-xs font-semibold text-primary hover:underline">Download</a><a href={current.signedUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">Open full screen</a></div></div>
               <iframe title="Lecture summary PDF" src={`${current.signedUrl}#toolbar=1&navpanes=0&view=FitH`} className="h-[75vh] min-h-[34rem] w-full bg-secondary/30" />
             </div>
           )}
@@ -184,7 +216,7 @@ function SummaryPage() {
             <div ref={viewerRef} className="card-surface overflow-hidden bg-background">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
                 <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Previous page" disabled={page === 0} onClick={() => { setPage((value) => Math.max(0, value - 1)); setZoom(1); }}><ChevronLeft className="size-4" /></Button><span className="min-w-20 text-center text-xs font-semibold">Page {page + 1} of {data?.files.length ?? 0}</span><Button size="sm" variant="ghost" aria-label="Next page" disabled={page === (data?.files.length ?? 1) - 1} onClick={() => { setPage((value) => Math.min((data?.files.length ?? 1) - 1, value + 1)); setZoom(1); }}><ChevronRight className="size-4" /></Button></div>
-                <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Zoom out" onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))}><Minus className="size-4" /></Button><span className="w-12 text-center text-xs font-semibold">{Math.round(zoom * 100)}%</span><Button size="sm" variant="ghost" aria-label="Zoom in" onClick={() => setZoom((value) => Math.min(3, value + 0.25))}><Plus className="size-4" /></Button><Button size="sm" variant="ghost" aria-label={isFullscreen ? "Exit full screen" : "Full screen"} title={isFullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen}>{isFullscreen ? <Shrink className="size-4" /> : <Expand className="size-4" />}</Button></div>
+                <div className="flex items-center gap-1"><Button size="sm" variant="ghost" aria-label="Zoom out" onClick={() => applyZoom(zoomRef.current - 0.25)}><Minus className="size-4" /></Button><span className="w-12 text-center text-xs font-semibold">{Math.round(zoom * 100)}%</span><Button size="sm" variant="ghost" aria-label="Zoom in" onClick={() => applyZoom(zoomRef.current + 0.25)}><Plus className="size-4" /></Button><Button size="sm" variant="ghost" aria-label="Reset zoom to 100%" title="Reset zoom to 100%" onClick={resetZoom} className="text-xs font-semibold">100%</Button><Button size="sm" variant="ghost" aria-label="Download this page" title="Download this page" onClick={downloadCurrent}><Download className="size-4" /></Button><Button size="sm" variant="ghost" aria-label={isFullscreen ? "Exit full screen" : "Full screen"} title={isFullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen}>{isFullscreen ? <Shrink className="size-4" /> : <Expand className="size-4" />}</Button></div>
               </div>
               <div ref={scrollRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd} className="h-[72vh] min-h-[32rem] touch-none overscroll-contain overflow-auto bg-secondary/30 p-3 sm:p-6"><img draggable={false} key={current.id} src={current.signedUrl} alt={`Summary page ${page + 1}`} className="mx-auto max-w-none origin-top select-none object-contain" style={{ width: `${zoom * 100}%` }} /></div>
               {(data?.files.length ?? 0) > 1 && <div className="flex gap-2 overflow-x-auto border-t border-border p-3">{data?.files.map((file, index) => <button key={file.id} type="button" onClick={() => { setPage(index); setZoom(1); }} className={`h-20 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-secondary ${index === page ? "border-primary" : "border-transparent"}`}><img src={file.signedUrl} alt={`Page ${index + 1}`} className="h-full w-full object-cover" /></button>)}</div>}
