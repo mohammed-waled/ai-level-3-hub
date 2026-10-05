@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Expand, MessageSquareText, Minus, Plus, Shrink } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Expand, MessageSquareText, Minus, Plus, Shrink } from "lucide-react";
 import { AppShell, Container, EmptyState } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,38 @@ function SummaryPage() {
   };
   const applyZoomRef = useRef(applyZoom);
   applyZoomRef.current = applyZoom;
+
+  // Reset zoom to exactly 100% and re-center the image (works in fullscreen too).
+  const resetZoom = () => {
+    zoomRef.current = 1;
+    setZoom(1);
+    const el = scrollRef.current;
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+        el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+      });
+    }
+  };
+
+  const downloadCurrent = async () => {
+    const file = data?.files[page];
+    if (!file) return;
+    try {
+      const response = await fetch(file.signedUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = file.original_file_name || `summary-page-${page + 1}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(file.signedUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   useEffect(() => {
     const el = scrollRef.current;
