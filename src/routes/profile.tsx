@@ -76,22 +76,22 @@ function ProfilePage() {
 
   async function saveName() {
     const trimmed = name.trim();
-    if (!trimmed || trimmed.length > 100) return toast.error("Enter a name (max 100 characters).");
+    if (!trimmed || trimmed.length > 100) { toast.error("Enter a name (max 100 characters)."); return; }
     setBusy(true);
     const { error } = await supabase.from("profiles").upsert({ id: user!.id, full_name: trimmed });
     setBusy(false);
-    if (error) return toast.error("Could not save your name.");
+    if (error) { toast.error("Could not save your name."); return; }
     toast.success("Name updated");
     setEditing(false);
     void queryClient.invalidateQueries({ queryKey: ["profile", user!.id] });
   }
 
   async function savePassword() {
-    if (password.length < 8) return toast.error("Password must be at least 8 characters.");
+    if (password.length < 8) { toast.error("Password must be at least 8 characters."); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Password changed");
     setPassword("");
     setPwOpen(false);
