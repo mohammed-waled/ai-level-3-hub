@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Copy, Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Eye, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { QuestionImportDialog } from "@/components/question-import-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTIES, type Course, type Difficulty, type Lecture, type Question, type QuestionType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ function AdminQuestions() {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [preview, setPreview] = useState<Question | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const { data: courses } = useQuery({
     queryKey: ["admin-courses"],
@@ -169,13 +171,25 @@ function AdminQuestions() {
             Centralised questions, reusable across quizzes and exams.
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => setDraft(emptyDraft(courseFilter || courses?.[0]?.id || "", lectureFilter))}
-          disabled={(courses?.length ?? 0) === 0}
-        >
-          <Plus className="size-4" /> New question
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setImporting(true)} disabled={(courses?.length ?? 0) === 0}>
+            <Upload className="size-4" /> Import Questions
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setDraft(emptyDraft(courseFilter || courses?.[0]?.id || "", lectureFilter))}
+            disabled={(courses?.length ?? 0) === 0}
+          >
+            <Plus className="size-4" /> New question
+          </Button>
+        </div>
+        <QuestionImportDialog
+          open={importing}
+          onOpenChange={setImporting}
+          courses={courses ?? []}
+          lectures={lectures ?? []}
+          questions={questions ?? []}
+        />
       </div>
 
       <div className="card-surface mt-6 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
