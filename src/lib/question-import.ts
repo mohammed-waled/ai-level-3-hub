@@ -77,7 +77,10 @@ export function validateImport(
       errors.push({ index: i + 1, messages: ["Entry is not an object"] });
       return;
     }
-    const q = item as Record<string, unknown>;
+    const q = item as {
+      question?: unknown; type?: unknown; difficulty?: unknown; correct_answer?: unknown;
+      options?: unknown; explanation?: unknown; image_url?: unknown; image?: unknown; reference?: unknown;
+    };
     const text = typeof q.question === "string" ? q.question.trim() : "";
     if (!text) messages.push("Missing question text");
 
